@@ -16,12 +16,17 @@ const firebaseConfig = {
   firestoreDatabaseId: env.VITE_FIREBASE_DATABASE_ID || firebaseAppletConfig.firestoreDatabaseId
 };
 
+// Protection for sidor-ai project
+if (typeof window !== 'undefined' && firebaseConfig.projectId !== 'sidor-ai') {
+  alert('שגיאה: הגדרות Firebase אינן תואמות לפרויקט Saban');
+}
+
 const app = initializeApp(firebaseConfig);
 
 // Debugging log with config metadata lengths
 console.log("Firebase Config Status:", {
   apiKeyLength: firebaseConfig.apiKey?.length || 0,
-  projectIdLength: firebaseConfig.projectId?.length || 0,
+  projectId: firebaseConfig.projectId,
   authDomain: firebaseConfig.authDomain
 });
 

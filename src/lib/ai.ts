@@ -1,14 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
 
-// החלפת הגישה לטובת גמישות ב-Deployment (Vercel/AI Studio)
-const meta = import.meta as any;
-const apiKey = meta.env?.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : undefined);
+// Direct check for Gemini API Key
+const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : undefined);
 
-// Debugging log with key lengths as requested
-console.log("AI Config Status:", {
-  hasKey: !!apiKey,
-  keyLength: apiKey?.length || 0
-});
+if (apiKey && apiKey.length > 20) {
+  console.log('API KEY DETECTED');
+}
 
 if (!apiKey) {
   const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel');
@@ -17,7 +14,6 @@ if (!apiKey) {
     : 'Missing Gemini API Key: Add "GEMINI_API_KEY" to the Secrets panel in AI Studio.';
   
   console.warn(message);
-  // Removed global alert to allow site to load
 }
 
 export const isAiConfigured = !!apiKey;
