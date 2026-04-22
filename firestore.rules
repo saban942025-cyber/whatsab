@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Validation Blueprints ---
+    
+    function isValidMessage(data) {
+      return data.keys().hasAll(['text', 'senderId', 'timestamp', 'type'])
+        && data.text is string && data.text.size() <= 5000
+        && data.senderId is string
+        && data.timestamp == request.time
+        && data.type in ['text', 'audio', 'system', 'order_card']
+        && (data.type != 'audio' || data.audioUrl is string);
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['customerName', 'status', 'extractedAt'])
+        && data.customerName is string && data.customerName.size() <= 200
+        && data.status in ['pending', 'approved', 'rejected', 'dispatched']
+        && data.extractedAt is string;
+    }
+
+    // --- Rules ---
+
+    match /messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidMessage(request.resource.data);
+      allow delete: if false; 
+    }
+
+    match /drivers/{driverId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.resource.data.name is string;
+    }
+
+    match /warehouses/{warehouseId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.resource.data.name is string;
+    }
+
+    match /orders/{orderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidOrder(request.resource.data);
+      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approvedBy']);
+    }
+
+    // Admin seeds for demo
+    match /test/connection {
+      allow read: if isSignedIn();
+    }
+  }
+}

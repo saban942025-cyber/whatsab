@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "Message": {
+      "title": "Message",
+      "description": "A chat message in the Saban-Connect system",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "description": "The message body" },
+        "senderId": { "type": "string", "description": "UID of the sender or 'noa' or 'system'" },
+        "senderName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["text", "audio", "system", "order_card"] },
+        "audioUrl": { "type": "string" },
+        "orderId": { "type": "string" }
+      },
+      "required": ["text", "senderId", "timestamp", "type"]
+    },
+    "Driver": {
+      "title": "Driver",
+      "description": "A driver in the Saban fleet",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "on_route", "maintenance", "off"] },
+        "currentLocation": { "type": "string" }
+      },
+      "required": ["name", "status"]
+    },
+    "Warehouse": {
+      "title": "Warehouse",
+      "description": "Logistics hub",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "inventoryLevel": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A logistic order extracted by Noa",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "items": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "dispatched"] },
+        "extractedAt": { "type": "string", "format": "date-time" },
+        "approvedBy": { "type": "string" }
+      },
+      "required": ["customerName", "status", "extractedAt"]
+    }
+  },
+  "firestore": {
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Global chat messages"
+    },
+    "/drivers/{driverId}": {
+      "schema": "Driver",
+      "description": "Driver registry"
+    },
+    "/warehouses/{warehouseId}": {
+      "schema": "Warehouse",
+      "description": "Warehouse locations"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Logistics orders"
+    }
+  }
+}

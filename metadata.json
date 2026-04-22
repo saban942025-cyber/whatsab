@@ -1,0 +1,6 @@
+{
+  "name": "Saban-Connect",
+  "description": "Professional WhatsApp-style logistics management platform with AI bridging and full-stack integration.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["AI Data Extraction", "Real-time Chat", "Logistics Dashboard"]
+}

@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Assistant:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Assistant", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-wa-bg: #f0f2f5;
+  --color-wa-sidebar: #ffffff;
+  --color-wa-header: #f0f2f5;
+  --color-wa-bubble-user: #d9fdd3;
+  --color-wa-bubble-other: #ffffff;
+  --color-wa-teal: #00a884;
+  --color-wa-teal-dark: #008069;
+}
+
+@layer base {
+  body {
+    @apply bg-wa-bg text-gray-900 font-sans antialiased;
+  }
+}
+
+.whatsapp-container {
+  height: calc(100vh - 40px);
+  max-width: 1600px;
+  margin: 20px auto;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  overflow: hidden;
+  background: white;
+}
+
+@media (max-width: 768px) {
+  .whatsapp-container {
+    height: 100vh;
+    margin: 0;
+  }
+}
