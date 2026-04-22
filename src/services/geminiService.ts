@@ -1,5 +1,5 @@
 import { Type } from "@google/genai";
-import { ai } from "../lib/ai";
+import { ai, isAiConfigured } from "../lib/ai";
 
 export const LOGISTICS_SYSTEM_INSTRUCTION = `
 You are Noa, the AI Operations Bridge for Saban-Connect.
@@ -14,6 +14,8 @@ When you see a message starting with 'נועה,', respond as Noa.
 When a user uploads a PDF (indicated by text like 'PDF content: ...'), use the createOrderFromPdfTool.
 When a driver reports (e.g., 'אני ב...', 'תקלה ב...'), use the driverReportTool.
 `;
+
+const MISSING_KEY_ERROR = "⚠️ שגיאת קונפיגורציה: מפתח ה-AI לא הוגדר. נועה לא יכולה לענות כרגע. אנא פנה למנהל המערכת להגדרת VITE_GEMINI_API_KEY ב-Vercel.";
 
 export const createOrderFromPdfTool = {
   name: "createOrderFromPdf",
@@ -48,6 +50,8 @@ export const driverReportTool = {
 };
 
 export async function analyzeIncident(type: string, description: string) {
+  if (!isAiConfigured) return MISSING_KEY_ERROR;
+  
   const prompt = `
     New incident reported in Saban-Connect:
     Type: ${type}
@@ -78,6 +82,10 @@ export async function analyzeIncident(type: string, description: string) {
 }
 
 export async function analyzeLogisticsMessage(text: string) {
+  if (!isAiConfigured) {
+    return { text: MISSING_KEY_ERROR, functionCalls: null };
+  }
+  
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",

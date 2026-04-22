@@ -17,6 +17,14 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+// Debugging log with config metadata lengths
+console.log("Firebase Config Status:", {
+  apiKeyLength: firebaseConfig.apiKey?.length || 0,
+  projectIdLength: firebaseConfig.projectId?.length || 0,
+  authDomain: firebaseConfig.authDomain
+});
+
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();
