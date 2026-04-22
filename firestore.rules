@@ -3,82 +3,49 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 0. Global Safety Net
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // --- Helpers ---
+    // Helper: Basic authentication check
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // --- Validation Blueprints ---
-    
+    // Helper: Validate message structure
     function isValidMessage(data) {
-      return data.keys().hasAll(['text', 'senderId', 'senderName', 'timestamp', 'type'])
-        && data.text is string && data.text.size() <= 10000
-        && data.senderId is string && data.senderId.size() <= 128
-        && data.senderName is string && data.senderName.size() <= 200
-        && data.timestamp == request.time
-        && data.type in ['text', 'audio', 'system', 'order_card']
-        && (data.get('audioUrl', null) == null || data.audioUrl is string)
-        && (data.get('orderData', null) == null || data.orderData is map)
-        && (data.get('orderId', null) == null || data.orderId is string);
+      return data.text is string 
+        && data.senderId is string 
+        && data.type in ['text', 'audio', 'system', 'order_card'];
     }
 
-    function isValidOrder(data) {
-      return data.keys().hasAll(['customerName', 'status', 'extractedAt'])
-        && data.customerName is string && data.customerName.size() <= 400
-        && data.status in ['pending', 'approved', 'rejected', 'dispatched']
-        && data.extractedAt is string;
-    }
-
-    function isValidDriver(data) {
-      return data.keys().hasAll(['name', 'status'])
-        && data.name is string && data.name.size() <= 200
-        && data.status in ['active', 'on_route', 'maintenance', 'off']
-        && (data.get('currentLocation', null) == null || data.currentLocation is string);
-    }
-
-    function isValidWarehouse(data) {
-      return data.keys().hasAll(['name', 'address', 'inventoryLevel'])
-        && data.name is string && data.name.size() <= 200
-        && data.address is string && data.address.size() <= 500
-        && data.inventoryLevel is string;
-    }
-
-    // --- Rules ---
+    // --- Core Logistics Collections ---
 
     match /messages/{messageId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && isValidMessage(request.resource.data);
-      allow update, delete: if false; 
+      allow update, delete: if false;
     }
 
     match /drivers/{driverId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidDriver(request.resource.data);
-      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'currentLocation']);
+      allow create, update: if isSignedIn();
     }
 
     match /warehouses/{warehouseId} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && isValidWarehouse(request.resource.data);
+      allow create, update: if isSignedIn();
     }
 
     match /orders/{orderId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidOrder(request.resource.data);
-      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approvedBy']);
+      allow create, update: if isSignedIn();
     }
 
+    // Seed/Diagnostic point
     match /test/connection {
       allow read: if isSignedIn();
+    }
+
+    // Default deny for everything else
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
