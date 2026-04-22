@@ -7,13 +7,15 @@ import {
   Video, 
   Phone, 
   Search as SearchIcon, 
-  MoreVertical 
+  MoreVertical,
+  AlertCircle
 } from 'lucide-react';
-import { db, auth } from '../lib/firebase';
+import { db, auth, isDomainAuthorized, onDomainError } from '../lib/firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, where } from 'firebase/firestore';
 import { Message } from '../types';
 import MessageBubble from './MessageBubble';
 import { analyzeLogisticsMessage } from '../services/geminiService';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface ChatAreaProps {
   activeChatId: string;
@@ -25,7 +27,12 @@ export default function ChatArea({ activeChatId, activeChatName, currentUser }: 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [status, setStatus] = useState<'typing' | 'processing' | null>(null);
+  const [domainError, setDomainError] = useState(!isDomainAuthorized);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    onDomainError(() => setDomainError(true));
+  }, []);
 
   useEffect(() => {
     if (!activeChatId) return;
@@ -160,6 +167,21 @@ export default function ChatArea({ activeChatId, activeChatName, currentUser }: 
           <MoreVertical className="w-5 h-5 cursor-pointer" />
         </div>
       </div>
+
+      <AnimatePresence>
+        {domainError && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-red-600 text-white text-xs py-2 px-4 flex items-center justify-center gap-2 z-20 font-bold"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>🚨 יש לאשר את הדומיין ב-Firebase Console</span>
+            <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline ml-2">לחץ כאן לאישור</a>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Chat Messages */}
       <div 

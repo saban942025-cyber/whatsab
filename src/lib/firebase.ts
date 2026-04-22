@@ -29,22 +29,33 @@ export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();
 
+export let isDomainAuthorized = true;
+const domainErrorListeners: ((status: boolean) => void)[] = [];
+
+export const onDomainError = (callback: (status: boolean) => void) => {
+  domainErrorListeners.push(callback);
+};
+
+const notifyDomainError = () => {
+  isDomainAuthorized = false;
+  domainErrorListeners.forEach(cb => cb(false));
+};
+
 export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
+    isDomainAuthorized = true;
     return result.user;
   } catch (error: any) {
     if (error?.code === 'auth/unauthorized-domain') {
+       notifyDomainError();
        const domain = window.location.hostname;
-       alert(`Domain Unauthorized: The domain "${domain}" is not authorized for Firebase Auth.\n\nPlease add it in: Firebase Console > Authentication > Settings > Authorized Domains.`);
        console.error(`Unauthorized Domain: ${domain}. Add this to your Firebase Authorized Domains list.`);
     } else if (error?.code === 'auth/popup-closed-by-user') {
        console.log("Sign-in popup closed by user.");
     } else {
-       alert('שגיאת התחברות: ' + (error?.message || 'אנא נסה שוב מאוחר יותר.'));
        console.error("Auth error:", error);
     }
-    // No throw here to prevent "Uncaught in promise" in the UI layer
     return null;
   }
 };
