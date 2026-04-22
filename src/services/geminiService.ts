@@ -1,6 +1,5 @@
-import { GoogleGenAI, Type } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+import { Type } from "@google/genai";
+import { ai } from "../lib/ai";
 
 export const LOGISTICS_SYSTEM_INSTRUCTION = `
 You are Noa, the AI Operations Bridge for Saban-Connect.
