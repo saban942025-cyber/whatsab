@@ -12,6 +12,8 @@ if (!apiKey) {
   console.error(message);
 }
 
+export const isAiConfigured = !!apiKey;
+
 export const ai = new GoogleGenAI({ 
   apiKey: apiKey || 'dummy-key-to-prevent-crash' 
 });

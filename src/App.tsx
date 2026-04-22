@@ -6,6 +6,7 @@ import { Driver, Warehouse, Message } from './types';
 import Sidebar from './components/Sidebar';
 import ChatArea from './components/ChatArea';
 import ReportingModal from './components/ReportingModal';
+import StatusBanner from './components/StatusBanner';
 import { Truck, LogIn, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -122,8 +123,10 @@ export default function App() {
   );
 
   return (
-    <AnimatePresence mode="wait">
-      {!user ? (
+    <div className="flex flex-col h-screen overflow-hidden">
+      <StatusBanner />
+      <AnimatePresence mode="wait">
+        {!user ? (
         <motion.div 
           key="login"
           initial={{ opacity: 0 }}
@@ -192,6 +195,7 @@ export default function App() {
           />
         </motion.div>
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </div>
   );
 }
