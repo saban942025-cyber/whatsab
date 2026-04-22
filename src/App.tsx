@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { db, auth, signInWithGoogle } from './lib/firebase';
+import { db, auth, signInWithGoogle, startOrderSync } from './lib/firebase';
 import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Driver, Warehouse, Message } from './types';
 import Sidebar from './components/Sidebar';
 import ChatArea from './components/ChatArea';
 import ReportingModal from './components/ReportingModal';
 import SystemCheck from './components/SystemCheck';
+import DiagnosticOverlay from './components/DiagnosticOverlay';
 import { Truck, LogIn, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -27,9 +28,12 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Data
+  // Data & Background Sync
   useEffect(() => {
     if (!user) return;
+
+    // Automated Sync for Orders
+    const unsubOrderSync = startOrderSync();
 
     // Listen to drivers
     const unsubDrivers = onSnapshot(collection(db, 'drivers'), (snap) => {
@@ -48,6 +52,7 @@ export default function App() {
     });
 
     return () => {
+      unsubOrderSync();
       unsubDrivers();
       unsubWarehouses();
     };
@@ -74,6 +79,17 @@ export default function App() {
             const initial = [{ name: "מחסן החרש", addr: "החרש 1" }, { name: "מחסן התלמיד", addr: "התלמיד 5" }];
             for (const wh of initial) {
               await addDoc(collection(db, 'warehouses'), { name: wh.name, address: wh.addr, inventoryLevel: 'Standard' });
+            }
+          }
+
+          const ordersSnap = await getDocs(fCollection(db, 'orders'));
+          if (ordersSnap.empty) {
+            const initial = [
+              { customer: "לקוח א", status: "pending", items: ["משטחים X10"] },
+              { customer: "לקוח ב", status: "approved", items: ["מוצרי צריכה X5"] }
+            ];
+            for (const order of initial) {
+              await addDoc(collection(db, 'orders'), order);
             }
           }
         });
@@ -125,6 +141,7 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <SystemCheck />
+      <DiagnosticOverlay userEmail={user?.email || null} />
       <AnimatePresence mode="wait">
         {!user ? (
         <motion.div 
