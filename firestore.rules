@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 0. Default Deny
+    // 0. Global Safety Net
     match /{document=**} {
       allow read, write: if false;
     }
@@ -11,6 +11,10 @@ service cloud.firestore {
     // --- Helpers ---
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
     }
 
     function isOwner(userId) {
@@ -24,46 +28,68 @@ service cloud.firestore {
     // --- Validation Blueprints ---
     
     function isValidMessage(data) {
-      return data.keys().hasAll(['text', 'senderId', 'timestamp', 'type'])
-        && data.text is string && data.text.size() <= 5000
-        && data.senderId is string
+      return data.keys().hasAll(['text', 'senderId', 'senderName', 'timestamp', 'type'])
+        && data.text is string && data.text.size() <= 10000
+        && data.senderId is string && data.senderId.size() <= 128
+        && data.senderName is string && data.senderName.size() <= 200
         && data.timestamp == request.time
         && data.type in ['text', 'audio', 'system', 'order_card']
-        && (data.type != 'audio' || data.audioUrl is string);
+        // Optional fields check
+        && (data.get('audioUrl', null) == null || data.audioUrl is string)
+        && (data.get('orderData', null) == null || data.orderData is map)
+        && (data.get('orderId', null) == null || data.orderId is string);
     }
 
     function isValidOrder(data) {
       return data.keys().hasAll(['customerName', 'status', 'extractedAt'])
-        && data.customerName is string && data.customerName.size() <= 200
+        && data.customerName is string && data.customerName.size() <= 400
         && data.status in ['pending', 'approved', 'rejected', 'dispatched']
         && data.extractedAt is string;
+    }
+
+    function isValidDriver(data) {
+      return data.keys().hasAll(['name', 'status'])
+        && data.name is string && data.name.size() <= 200
+        && data.status in ['active', 'on_route', 'maintenance', 'off']
+        && (data.get('currentLocation', null) == null || data.currentLocation is string);
+    }
+
+    function isValidWarehouse(data) {
+      return data.keys().hasAll(['name', 'address', 'inventoryLevel'])
+        && data.name is string && data.name.size() <= 200
+        && data.address is string && data.address.size() <= 500
+        && data.inventoryLevel is string;
     }
 
     // --- Rules ---
 
     match /messages/{messageId} {
+      // Secure list query: Authenticated users can see chat activity
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidMessage(request.resource.data);
-      allow delete: if false; 
+      // Write: Mandate verification and schema
+      allow create: if isVerified() && isValidMessage(request.resource.data);
+      allow update, delete: if false; 
     }
 
     match /drivers/{driverId} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && request.resource.data.name is string;
+      allow create: if isVerified() && isValidDriver(request.resource.data);
+      // Limited update for status/location
+      allow update: if isVerified() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'currentLocation']);
     }
 
     match /warehouses/{warehouseId} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && request.resource.data.name is string;
+      allow create, update: if isVerified() && isValidWarehouse(request.resource.data);
     }
 
     match /orders/{orderId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidOrder(request.resource.data);
-      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approvedBy']);
+      allow create: if isVerified() && isValidOrder(request.resource.data);
+      allow update: if isVerified() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approvedBy']);
     }
 
-    // Admin seeds for demo
+    // Diagnostic connection point
     match /test/connection {
       allow read: if isSignedIn();
     }
