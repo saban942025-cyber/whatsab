@@ -47,6 +47,36 @@ export const driverReportTool = {
   }
 };
 
+export async function analyzeIncident(type: string, description: string) {
+  const prompt = `
+    New incident reported in Saban-Connect:
+    Type: ${type}
+    Description: ${description}
+
+    As Noa, analyze the severity and provide a concise professional advice in Hebrew.
+    If it's a delay, suggest checking alternatives or informing customer.
+    If it's damage, suggest return protocols.
+    If it's behavior, suggest supervisor intervention.
+    
+    Response format: "ניתוח נועה: [Analysis] | המלצה: [Action]"
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: LOGISTICS_SYSTEM_INSTRUCTION,
+      },
+    });
+
+    return response.text;
+  } catch (error) {
+    console.error("Gemini Incident Error:", error);
+    return "נועה מעבדת את הדיווח. אנא המתן להמשך הנחיות מהמנהל.";
+  }
+}
+
 export async function analyzeLogisticsMessage(text: string) {
   try {
     const response = await ai.models.generateContent({

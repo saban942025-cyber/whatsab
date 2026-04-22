@@ -3,6 +3,7 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { X, AlertTriangle, Clock, Package, UserX, PackageSearch, Image, Mic, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { analyzeIncident } from '../services/geminiService';
 
 interface ReportingModalProps {
   isOpen: boolean;
@@ -27,6 +28,9 @@ export default function ReportingModal({ isOpen, onClose, currentUser }: Reporti
 
     setIsSubmitting(true);
     try {
+      const typeLabel = incidentTypes.find(t => t.id === type)?.label || 'חריגה כללית';
+      
+      // 1. Save to incidents collection
       await addDoc(collection(db, 'incidents'), {
         type,
         description,
@@ -36,17 +40,31 @@ export default function ReportingModal({ isOpen, onClose, currentUser }: Reporti
         status: 'new'
       });
       
-      // Send a ping to Noa in the global chat
+      // 2. Clear inputs and close early
+      onClose();
+      setDescription('');
+
+      // 3. Send initial system notification
       await addDoc(collection(db, 'messages'), {
-        text: `🚨 דיווח חדש התקבל מ-${currentUser?.displayName || 'השטח'}: ${incidentTypes.find(t => t.id === type)?.label}. תיאור: ${description}`,
+        text: `🚨 דיווח חדש התקבל מ-${currentUser?.displayName || 'השטח'}: ${typeLabel}. תיאור: ${description}`,
         senderId: 'system',
         senderName: 'SabanOS',
         timestamp: serverTimestamp(),
         type: 'system'
       });
 
-      onClose();
-      setDescription('');
+      // 4. Trigger Noa's internal analysis
+      const analysis = await analyzeIncident(typeLabel, description);
+      
+      // 5. Post Noa's response
+      await addDoc(collection(db, 'messages'), {
+        text: analysis,
+        senderId: 'noa',
+        senderName: 'Noa AI',
+        timestamp: serverTimestamp(),
+        type: 'text'
+      });
+
     } catch (err) {
       console.error("Incident report failed:", err);
       alert("הדיווח נכשל, אנא נסה שוב.");
