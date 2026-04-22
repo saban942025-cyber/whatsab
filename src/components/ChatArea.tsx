@@ -9,7 +9,7 @@ import {
   Search as SearchIcon, 
   MoreVertical 
 } from 'lucide-react';
-import { db, auth } from '../services/firebase';
+import { db, auth } from '../lib/firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, where } from 'firebase/firestore';
 import { Message } from '../types';
 import MessageBubble from './MessageBubble';

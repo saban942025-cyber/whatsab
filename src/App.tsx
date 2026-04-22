@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { db, auth, signInWithGoogle } from './services/firebase';
+import { db, auth, signInWithGoogle } from './lib/firebase';
 import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Driver, Warehouse, Message } from './types';
 import Sidebar from './components/Sidebar';
