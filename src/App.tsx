@@ -32,12 +32,16 @@ export default function App() {
     const unsubDrivers = onSnapshot(collection(db, 'drivers'), (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Driver));
       setDrivers(data);
+    }, (error) => {
+      console.error("Drivers listener error:", error);
     });
 
     // Listen to warehouses
     const unsubWarehouses = onSnapshot(collection(db, 'warehouses'), (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Warehouse));
       setWarehouses(data);
+    }, (error) => {
+      console.error("Warehouses listener error:", error);
     });
 
     return () => {
@@ -51,28 +55,28 @@ export default function App() {
     if (!user) return;
     
     const seed = async () => {
-       // Separate one-time check for seeding
-       import('firebase/firestore').then(async ({ getDocs, collection }) => {
-         try {
-           const driversSnap = await getDocs(collection(db, 'drivers'));
-           if (driversSnap.empty) {
-             const initial = ["עלי", "חכמת"];
-             for (const name of initial) {
-               await addDoc(collection(db, 'drivers'), { name, status: 'active', currentLocation: 'ממתין למשימה' });
-             }
-           }
-           
-           const warehousesSnap = await getDocs(collection(db, 'warehouses'));
-           if (warehousesSnap.empty) {
-             const initial = [{ name: "מחסן החרש", addr: "החרש 1" }, { name: "מחסן התלמיד", addr: "התלמיד 5" }];
-             for (const wh of initial) {
-               await addDoc(collection(db, 'warehouses'), { name: wh.name, address: wh.addr, inventoryLevel: 'Standard' });
-             }
-           }
-         } catch (err) {
-           console.warn("Seeding skip/failure (expected if rules deploying):", err);
-         }
-       });
+      try {
+        // Use already imported collection/addDoc
+        import('firebase/firestore').then(async ({ getDocs, collection: fCollection }) => {
+          const driversSnap = await getDocs(fCollection(db, 'drivers'));
+          if (driversSnap.empty) {
+            const initial = ["עלי", "חכמת"];
+            for (const name of initial) {
+              await addDoc(collection(db, 'drivers'), { name, status: 'active', currentLocation: 'ממתין למשימה' });
+            }
+          }
+          
+          const warehousesSnap = await getDocs(fCollection(db, 'warehouses'));
+          if (warehousesSnap.empty) {
+            const initial = [{ name: "מחסן החרש", addr: "החרש 1" }, { name: "מחסן התלמיד", addr: "התלמיד 5" }];
+            for (const wh of initial) {
+              await addDoc(collection(db, 'warehouses'), { name: wh.name, address: wh.addr, inventoryLevel: 'Standard' });
+            }
+          }
+        });
+      } catch (err) {
+        console.warn("Seeding skip/failure:", err);
+      }
     };
     seed();
   }, [user]);

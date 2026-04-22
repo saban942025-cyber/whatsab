@@ -40,6 +40,8 @@ export default function ChatArea({ activeChatId, activeChatName, currentUser }: 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
       setMessages(msgs);
+    }, (error) => {
+      console.error("Messages listener error:", error);
     });
 
     return () => unsubscribe();
