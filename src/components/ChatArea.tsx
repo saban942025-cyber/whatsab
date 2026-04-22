@@ -24,7 +24,7 @@ interface ChatAreaProps {
 export default function ChatArea({ activeChatId, activeChatName, currentUser }: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [status, setStatus] = useState<'typing' | 'processing' | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,41 +70,55 @@ export default function ChatArea({ activeChatId, activeChatName, currentUser }: 
 
     // Check if it's for NOA or refers to logistics
     if (activeChatId === 'noa-bridge' || text.toLowerCase().includes('noa') || text.includes('נועה')) {
-      setIsTyping(true);
-      const analysis = await analyzeLogisticsMessage(text);
-      setIsTyping(false);
-
-      if (analysis.functionCalls) {
-        for (const call of analysis.functionCalls) {
-          if (call.name === 'createOrderFromPdf') {
-             await addDoc(collection(db, 'messages'), {
-              text: `נועה זיהתה הזמנה חדשה עבור ${call.args.customerName}:`,
-              senderId: 'noa',
-              senderName: 'Noa AI',
-              timestamp: serverTimestamp(),
-              type: 'order_card',
-              orderData: call.args
-            });
-          } else if (call.name === 'driverReport') {
-             await addDoc(collection(db, 'messages'), {
-              text: `דיווח נהג התקבל: ${call.args.driverName} ב-${call.args.location}. סטטוס: ${call.args.issueType}`,
-              senderId: 'system',
-              senderName: 'SabanOS',
-              timestamp: serverTimestamp(),
-              type: 'system'
-            });
+      setStatus('typing');
+      
+      try {
+        const analysis = await analyzeLogisticsMessage(text);
+        setStatus('processing');
+        
+        if (analysis.functionCalls) {
+          for (const call of analysis.functionCalls) {
+            if (call.name === 'createOrderFromPdf') {
+               await addDoc(collection(db, 'messages'), {
+                text: `נועה זיהתה הזמנה חדשה עבור ${call.args.customerName}:`,
+                senderId: 'noa',
+                senderName: 'Noa AI',
+                timestamp: serverTimestamp(),
+                type: 'order_card',
+                orderData: call.args
+              });
+            } else if (call.name === 'driverReport') {
+               await addDoc(collection(db, 'messages'), {
+                text: `דיווח נהג התקבל: ${call.args.driverName} ב-${call.args.location}. סטטוס: ${call.args.issueType}`,
+                senderId: 'system',
+                senderName: 'SabanOS',
+                timestamp: serverTimestamp(),
+                type: 'system'
+              });
+            }
           }
+        } else {
+          await addDoc(collection(db, 'messages'), {
+            text: analysis.text || 'מצטערת, לא הבנתי את הבקשה.',
+            senderId: 'noa',
+            senderName: 'Noa AI',
+            timestamp: serverTimestamp(),
+            type: 'text'
+          });
         }
-      } else {
-        await addDoc(collection(db, 'messages'), {
-          text: analysis.text || 'מצטערת, לא הבנתי את הבקשה.',
-          senderId: 'noa',
-          senderName: 'Noa AI',
-          timestamp: serverTimestamp(),
-          type: 'text'
-        });
+      } catch (err) {
+        console.error("Noa processing error:", err);
+      } finally {
+        // Natural delay before Noa goes back to 'online'
+        setTimeout(() => setStatus(null), 1200);
       }
     }
+  };
+
+  const getStatusText = () => {
+    if (status === 'typing') return 'נועה מקלידה...';
+    if (status === 'processing') return 'נועה מעבדת נתונים...';
+    return 'מחוברת';
   };
 
   return (
@@ -123,12 +137,18 @@ export default function ChatArea({ activeChatId, activeChatName, currentUser }: 
       <div className="h-16 bg-wa-header px-4 flex items-center justify-between border-b border-gray-200 z-10 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-            <img src={`https://picsum.photos/seed/${activeChatId}/100/100`} alt={activeChatName} />
+            <img src={`https://picsum.photos/seed/${activeChatId}/100/100`} alt={activeChatName} referrerPolicy="no-referrer" />
           </div>
           <div>
             <h3 className="font-medium text-gray-900">{activeChatName}</h3>
-            <p className="text-xs text-gray-500">
-              {isTyping ? <span className="text-wa-teal italic">נועה מקלידה...</span> : 'מחוברת'}
+            <p className="text-xs text-gray-500 transition-all duration-300">
+              {status ? (
+                <span className="text-wa-teal font-medium animate-pulse">
+                  {getStatusText()}
+                </span>
+              ) : (
+                'מחוברת'
+              )}
             </p>
           </div>
         </div>
