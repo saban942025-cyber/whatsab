@@ -13,16 +13,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isVerified() {
-      return isSignedIn() && request.auth.token.email_verified == true;
-    }
-
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     // --- Validation Blueprints ---
@@ -34,7 +26,6 @@ service cloud.firestore {
         && data.senderName is string && data.senderName.size() <= 200
         && data.timestamp == request.time
         && data.type in ['text', 'audio', 'system', 'order_card']
-        // Optional fields check
         && (data.get('audioUrl', null) == null || data.audioUrl is string)
         && (data.get('orderData', null) == null || data.orderData is map)
         && (data.get('orderId', null) == null || data.orderId is string);
@@ -64,32 +55,28 @@ service cloud.firestore {
     // --- Rules ---
 
     match /messages/{messageId} {
-      // Secure list query: Authenticated users can see chat activity
       allow read: if isSignedIn();
-      // Write: Mandate verification and schema
-      allow create: if isVerified() && isValidMessage(request.resource.data);
+      allow create: if isSignedIn() && isValidMessage(request.resource.data);
       allow update, delete: if false; 
     }
 
     match /drivers/{driverId} {
       allow read: if isSignedIn();
-      allow create: if isVerified() && isValidDriver(request.resource.data);
-      // Limited update for status/location
-      allow update: if isVerified() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'currentLocation']);
+      allow create: if isSignedIn() && isValidDriver(request.resource.data);
+      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'currentLocation']);
     }
 
     match /warehouses/{warehouseId} {
       allow read: if isSignedIn();
-      allow create, update: if isVerified() && isValidWarehouse(request.resource.data);
+      allow create, update: if isSignedIn() && isValidWarehouse(request.resource.data);
     }
 
     match /orders/{orderId} {
       allow read: if isSignedIn();
-      allow create: if isVerified() && isValidOrder(request.resource.data);
-      allow update: if isVerified() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approvedBy']);
+      allow create: if isSignedIn() && isValidOrder(request.resource.data);
+      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approvedBy']);
     }
 
-    // Diagnostic connection point
     match /test/connection {
       allow read: if isSignedIn();
     }
