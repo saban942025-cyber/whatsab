@@ -5,7 +5,8 @@ import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firest
 import { Driver, Warehouse, Message } from './types';
 import Sidebar from './components/Sidebar';
 import ChatArea from './components/ChatArea';
-import { Truck, LogIn } from 'lucide-react';
+import ReportingModal from './components/ReportingModal';
+import { Truck, LogIn, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [activeChatId, setActiveChatId] = useState('noa-bridge');
   const [loading, setLoading] = useState(true);
+  const [isReportingOpen, setIsReportingOpen] = useState(false);
 
   // Auth
   useEffect(() => {
@@ -170,6 +172,23 @@ export default function App() {
               : (drivers.find(d => d.id === activeChatId)?.name || warehouses.find(w => w.id === activeChatId)?.name || 'Chat')
             }
             currentUser={user}
+          />
+          
+          {/* Reporting Tool FAB */}
+          <button 
+            onClick={() => setIsReportingOpen(true)}
+            className="fixed bottom-24 right-6 w-14 h-14 bg-red-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-red-700 transition-all hover:scale-110 active:scale-95 z-50 animate-bounce cursor-pointer group"
+          >
+            <AlertCircle className="w-8 h-8" />
+            <span className="absolute -top-10 right-0 bg-red-600 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              המלשינון - דווח חריגה
+            </span>
+          </button>
+
+          <ReportingModal 
+            isOpen={isReportingOpen} 
+            onClose={() => setIsReportingOpen(false)} 
+            currentUser={user} 
           />
         </motion.div>
       )}

@@ -26,6 +26,18 @@ export interface Warehouse {
   icon?: string;
 }
 
+export interface Incident {
+  id?: string;
+  type: 'delay' | 'damage' | 'behavior' | 'stock' | 'other';
+  description: string;
+  reporterId: string;
+  reporterName: string;
+  timestamp: any;
+  status: 'new' | 'investigating' | 'resolved';
+  imageUrl?: string;
+  audioUrl?: string;
+}
+
 export interface TeamMember {
   id: string;
   name: string;
