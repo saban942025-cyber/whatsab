@@ -5,7 +5,11 @@ const meta = import.meta as any;
 const apiKey = meta.env?.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : undefined);
 
 if (!apiKey) {
-  console.error('Missing Gemini API Key: Please set VITE_GEMINI_API_KEY in your environment variables.');
+  const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel');
+  const message = isVercel 
+    ? 'Missing Gemini API Key: Set "VITE_GEMINI_API_KEY" in your Vercel Project Settings > Environment Variables.'
+    : 'Missing Gemini API Key: Add "GEMINI_API_KEY" to the Secrets panel in AI Studio.';
+  console.error(message);
 }
 
 export const ai = new GoogleGenAI({ 

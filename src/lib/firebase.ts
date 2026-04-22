@@ -27,11 +27,16 @@ export const signInWithGoogle = async () => {
     return result.user;
   } catch (error: any) {
     if (error?.code === 'auth/unauthorized-domain') {
-       alert('יש לאשר את הדומיין ב-Firebase Console (Authentication > Settings > Authorized Domains).');
-       console.error('Unauthorized Domain: Please add this domain to Firebase Authorized Domains.');
+       const domain = window.location.hostname;
+       alert(`Domain Unauthorized: The domain "${domain}" is not authorized for Firebase Auth.\n\nPlease add it in: Firebase Console > Authentication > Settings > Authorized Domains.`);
+       console.error(`Unauthorized Domain: ${domain}. Add this to your Firebase Authorized Domains list.`);
+    } else if (error?.code === 'auth/popup-closed-by-user') {
+       console.log("Sign-in popup closed by user.");
     } else {
+       alert('שגיאת התחברות: ' + (error?.message || 'אנא נסה שוב מאוחר יותר.'));
        console.error("Auth error:", error);
     }
-    throw error;
+    // No throw here to prevent "Uncaught in promise" in the UI layer
+    return null;
   }
 };
